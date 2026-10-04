@@ -1,0 +1,282 @@
+CREATE TABLE Customer (
+    customer_id NUMBER(10) PRIMARY KEY,
+    name VARCHAR2(100) NOT NULL,
+    phone VARCHAR2(15) UNIQUE NOT NULL,
+    email VARCHAR2(100) UNIQUE NOT NULL,
+    registration_date DATE DEFAULT SYSDATE NOT NULL
+);
+
+CREATE TABLE CustomerAddress (
+    address_id NUMBER(10) PRIMARY KEY,
+    customer_id NUMBER(10) NOT NULL,
+    address_line VARCHAR2(255) NOT NULL,
+    city VARCHAR2(50) NOT NULL,
+    postal_code VARCHAR2(10) NOT NULL,
+    is_default NUMBER(1) DEFAULT 0 CHECK (is_default IN (0, 1)),
+    CONSTRAINT fk_cust_addr FOREIGN KEY (customer_id) 
+        REFERENCES Customer(customer_id) ON DELETE CASCADE
+);
+
+CREATE TABLE Restaurant (
+    restaurant_id NUMBER(10) PRIMARY KEY,
+    name VARCHAR2(100) NOT NULL,
+    address VARCHAR2(255) NOT NULL,
+    cuisine_type VARCHAR2(50) NOT NULL,
+    avg_rating NUMBER(3, 2) CHECK (avg_rating >= 0 AND avg_rating <= 5)
+);
+
+CREATE TABLE MenuItem (
+    item_id NUMBER(10) PRIMARY KEY,
+    restaurant_id NUMBER(10) NOT NULL,
+    name VARCHAR2(100) NOT NULL,
+    price NUMBER(8, 2) NOT NULL CHECK (price > 0),
+    category VARCHAR2(20) CHECK (category IN ('Starter', 'Main Course', 'Dessert', 'Beverage')),
+    is_available NUMBER(1) DEFAULT 1 CHECK (is_available IN (0, 1)),
+    CONSTRAINT fk_menu_rest FOREIGN KEY (restaurant_id) 
+        REFERENCES Restaurant(restaurant_id) ON DELETE CASCADE
+);
+
+CREATE TABLE DeliveryAgent (
+    agent_id NUMBER(10) PRIMARY KEY,
+    name VARCHAR2(100) NOT NULL,
+    phone VARCHAR2(15) UNIQUE NOT NULL,
+    vehicle_number VARCHAR2(20) UNIQUE NOT NULL,
+    availability_status VARCHAR2(20) CHECK (availability_status IN ('Available', 'Busy', 'Offline'))
+);
+
+CREATE TABLE Orders (
+    order_id NUMBER(10) PRIMARY KEY,
+    customer_id NUMBER(10) NOT NULL,
+    restaurant_id NUMBER(10) NOT NULL,
+    agent_id NUMBER(10),
+    order_datetime TIMESTAMP NOT NULL,
+    delivered_datetime TIMESTAMP,
+    order_status VARCHAR2(30) CHECK (order_status IN ('Placed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled')),
+    total_amount NUMBER(10, 2) DEFAULT 0.00 NOT NULL,
+    CONSTRAINT fk_ord_cust FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
+    CONSTRAINT fk_ord_rest FOREIGN KEY (restaurant_id) REFERENCES Restaurant(restaurant_id),
+    CONSTRAINT fk_ord_agent FOREIGN KEY (agent_id) REFERENCES DeliveryAgent(agent_id)
+);
+
+CREATE TABLE OrderItem (
+    order_id NUMBER(10) NOT NULL,
+    item_id NUMBER(10) NOT NULL,
+    quantity NUMBER(5) NOT NULL CHECK (quantity > 0),
+    unit_price_at_order NUMBER(8, 2) NOT NULL CHECK (unit_price_at_order > 0),
+    CONSTRAINT pk_orderitem PRIMARY KEY (order_id, item_id),
+    CONSTRAINT fk_oi_ord FOREIGN KEY (order_id) REFERENCES Orders(order_id) ON DELETE CASCADE,
+    CONSTRAINT fk_oi_item FOREIGN KEY (item_id) REFERENCES MenuItem(item_id)
+);
+
+CREATE TABLE Payment (
+    payment_id NUMBER(10) PRIMARY KEY,
+    order_id NUMBER(10) UNIQUE NOT NULL,
+    payment_mode VARCHAR2(20) CHECK (payment_mode IN ('Cash', 'Card', 'UPI', 'Wallet')),
+    amount NUMBER(10, 2) NOT NULL CHECK (amount >= 0),
+    payment_status VARCHAR2(20) CHECK (payment_status IN ('Completed', 'Pending', 'Failed', 'Refunded')),
+    payment_datetime TIMESTAMP NOT NULL,
+    CONSTRAINT fk_pay_ord FOREIGN KEY (order_id) REFERENCES Orders(order_id) ON DELETE CASCADE
+);
+
+INSERT INTO Customer VALUES (1, 'Aarav Sharma', '9876543210', 'aarav.sharma@gmail.com', TO_DATE('2026-01-10', 'YYYY-MM-DD'));
+INSERT INTO Customer VALUES (2, 'Pooja Iyer', '9876543211', 'pooja.iyer@outlook.com', TO_DATE('2026-01-12', 'YYYY-MM-DD'));
+INSERT INTO Customer VALUES (3, 'Rohan Verma', '9876543212', 'rohan.verma@yahoo.in', TO_DATE('2026-01-15', 'YYYY-MM-DD'));
+INSERT INTO Customer VALUES (4, 'Ananya Patel', '9876543213', 'ananya.patel@rediffmail.com', TO_DATE('2026-02-01', 'YYYY-MM-DD'));
+INSERT INTO Customer VALUES (5, 'Karthik Nair', '9876543214', 'karthik.nair@gmail.com', TO_DATE('2026-02-10', 'YYYY-MM-DD'));
+INSERT INTO Customer VALUES (6, 'Sneha Kulkarni', '9876543215', 'sneha.k@techcorp.in', TO_DATE('2026-02-15', 'YYYY-MM-DD'));
+INSERT INTO Customer VALUES (7, 'Vikram Malhotra', '9876543216', 'vikram.m@startup.co.in', TO_DATE('2026-03-01', 'YYYY-MM-DD'));
+INSERT INTO Customer VALUES (8, 'Meera Nambiar', '9876543217', 'meera.nambiar@gmail.com', TO_DATE('2026-03-05', 'YYYY-MM-DD'));
+INSERT INTO Customer VALUES (9, 'Arjun Reddy', '9876543218', 'arjun.reddy@hyderabad.ac.in', TO_DATE('2026-03-10', 'YYYY-MM-DD'));
+INSERT INTO Customer VALUES (10, 'Divya Deshmukh', '9876543219', 'divya.deshmukh@gmail.com', TO_DATE('2026-03-12', 'YYYY-MM-DD'));
+
+INSERT INTO CustomerAddress VALUES (101, 1, 'Flat 402, Shanti Niketan, Indiranagar', 'Bengaluru', '560038', 1);
+INSERT INTO CustomerAddress VALUES (102, 2, '24 Green Glen Layout, Bellandur', 'Bengaluru', '560103', 1);
+INSERT INTO CustomerAddress VALUES (103, 3, 'B-12 Malviya Nagar', 'New Delhi', '110017', 1);
+INSERT INTO CustomerAddress VALUES (104, 4, '15 Prabhat Road, Erandwane', 'Pune', '411004', 1);
+INSERT INTO CustomerAddress VALUES (105, 5, 'Plot 88, Anna Nagar West', 'Chennai', '600040', 1);
+INSERT INTO CustomerAddress VALUES (106, 6, '701 sea Breeze, Bandra West', 'Mumbai', '400050', 1);
+INSERT INTO CustomerAddress VALUES (107, 7, 'Flat 10B, Jubilee Hills Check Post', 'Hyderabad', '500033', 1);
+INSERT INTO CustomerAddress VALUES (108, 8, 'Flat 304, Panampilly Nagar', 'Kochi', '682036', 1);
+INSERT INTO CustomerAddress VALUES (109, 9, '12 Golf Club Road, Tollygunge', 'Kolkata', '700033', 1);
+INSERT INTO CustomerAddress VALUES (110, 10, 'House 44, Gomti Nagar Phase 2', 'Lucknow', '226010', 1);
+
+INSERT INTO Restaurant VALUES (1, 'Punjabi Angithi Dhaba', 'MG Road, Brigade Junction', 'North Indian', 4.6);
+INSERT INTO Restaurant VALUES (2, 'Tuscana Wood Fired Pizza', '88 Park Street, Koramangala', 'Italian', 4.4);
+INSERT INTO Restaurant VALUES (3, 'Mainland China Hub', 'Bayview Mall, Marine Drive', 'Chinese', 3.8);
+INSERT INTO Restaurant VALUES (4, 'The Bombay Burger Cafe', 'Shop 5, Hiranandani Estate', 'Continental', 4.2);
+INSERT INTO Restaurant VALUES (5, 'Dakshin Thali & Coastal Bar', '102 Temple Road, Malleshwaram', 'South Indian', 4.7);
+
+INSERT INTO MenuItem VALUES (201, 1, 'Paneer Tikka', 250.00, 'Starter', 1);
+INSERT INTO MenuItem VALUES (202, 1, 'Butter Chicken', 360.00, 'Main Course', 1);
+INSERT INTO MenuItem VALUES (203, 1, 'Garlic Naan', 60.00, 'Main Course', 1);
+INSERT INTO MenuItem VALUES (204, 1, 'Gulab Jamun (2 pcs)', 110.00, 'Dessert', 1);
+INSERT INTO MenuItem VALUES (205, 2, 'Margherita Pizza', 380.00, 'Main Course', 1);
+INSERT INTO MenuItem VALUES (206, 2, 'Chicken Tikka Pizza', 490.00, 'Main Course', 1);
+INSERT INTO MenuItem VALUES (207, 2, 'Filter Coffee Tiramisu', 220.00, 'Dessert', 1);
+INSERT INTO MenuItem VALUES (208, 3, 'Kung Pao Chicken', 310.00, 'Main Course', 1);
+INSERT INTO MenuItem VALUES (209, 3, 'Veg Spring Rolls', 180.00, 'Starter', 1);
+INSERT INTO MenuItem VALUES (210, 4, 'Crispy Paneer Burger', 270.00, 'Main Course', 1);
+INSERT INTO MenuItem VALUES (211, 4, 'Peri Peri Masala Fries', 160.00, 'Starter', 1);
+INSERT INTO MenuItem VALUES (212, 5, 'King Fish Fry (Surmai)', 420.00, 'Main Course', 1);
+INSERT INTO MenuItem VALUES (213, 5, 'Kozhi Pepper Rasam Soup', 130.00, 'Starter', 1);
+INSERT INTO MenuItem VALUES (214, 5, 'Elaneer Payasam', 150.00, 'Dessert', 1);
+
+INSERT INTO DeliveryAgent VALUES (1, 'Ramesh Kumar', '9123456780', 'KA-01-EA-1234', 'Available');
+INSERT INTO DeliveryAgent VALUES (2, 'Sunil Gurung', '9123456781', 'KA-03-MB-5678', 'Available');
+INSERT INTO DeliveryAgent VALUES (3, 'Mohammed Zafar', '9123456782', 'MH-02-CW-9012', 'Busy');
+INSERT INTO DeliveryAgent VALUES (4, 'Anil Gowda', '9123456783', 'DL-4S-GH-3456', 'Available');
+
+INSERT INTO Orders VALUES (1001, 1, 1, 1, TO_TIMESTAMP('2026-03-01 12:30:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-01 13:02:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 670.00);
+INSERT INTO Orders VALUES (1002, 1, 2, 2, TO_TIMESTAMP('2026-03-05 19:15:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-05 19:50:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 600.00);
+INSERT INTO Orders VALUES (1003, 1, 1, 1, TO_TIMESTAMP('2026-03-12 13:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-12 13:35:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 360.00);
+INSERT INTO Orders VALUES (1004, 1, 4, 3, TO_TIMESTAMP('2026-03-20 20:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-20 20:40:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 430.00);
+INSERT INTO Orders VALUES (1005, 2, 2, 2, TO_TIMESTAMP('2026-03-02 20:10:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-02 20:48:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 490.00);
+INSERT INTO Orders VALUES (1006, 2, 3, 4, TO_TIMESTAMP('2026-03-07 13:20:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-07 14:05:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 490.00);
+INSERT INTO Orders VALUES (1007, 3, 1, 1, TO_TIMESTAMP('2026-03-03 12:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-03 12:32:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 420.00);
+INSERT INTO Orders VALUES (1008, 4, 5, 2, TO_TIMESTAMP('2026-03-04 18:45:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-04 19:22:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 550.00);
+INSERT INTO Orders VALUES (1009, 4, 5, 3, TO_TIMESTAMP('2026-03-09 19:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-09 19:42:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 840.00);
+INSERT INTO Orders VALUES (1010, 4, 5, 1, TO_TIMESTAMP('2026-03-15 20:30:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-15 21:05:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 420.00);
+INSERT INTO Orders VALUES (1011, 4, 5, 4, TO_TIMESTAMP('2026-03-24 13:10:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-24 13:46:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 700.00);
+INSERT INTO Orders VALUES (1012, 5, 4, 2, TO_TIMESTAMP('2026-03-06 21:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-06 21:38:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 270.00);
+INSERT INTO Orders VALUES (1013, 6, 3, 4, TO_TIMESTAMP('2026-03-08 14:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-08 14:45:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 310.00);
+INSERT INTO Orders VALUES (1014, 7, 2, 1, TO_TIMESTAMP('2026-03-10 19:30:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-10 20:06:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 710.00);
+INSERT INTO Orders VALUES (1015, 8, 1, 3, TO_TIMESTAMP('2026-03-11 12:45:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-11 13:25:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 610.00);
+INSERT INTO Orders VALUES (1016, 9, 4, 2, TO_TIMESTAMP('2026-03-13 13:15:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-13 13:52:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 430.00);
+INSERT INTO Orders VALUES (1017, 10, 5, 4, TO_TIMESTAMP('2026-03-14 20:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-14 20:41:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 570.00);
+INSERT INTO Orders VALUES (1018, 2, 1, 1, TO_TIMESTAMP('2026-03-18 20:10:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-18 20:44:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 420.00);
+INSERT INTO Orders VALUES (1019, 3, 2, 2, TO_TIMESTAMP('2026-03-22 19:40:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-22 20:25:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 380.00);
+INSERT INTO Orders VALUES (1020, 6, 4, 3, TO_TIMESTAMP('2026-03-26 13:30:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-26 14:15:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 270.00);
+INSERT INTO Orders VALUES (1021, 7, 5, 4, TO_TIMESTAMP('2026-03-28 20:15:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-28 20:55:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 420.00);
+INSERT INTO Orders VALUES (1022, 1, 1, 1, TO_TIMESTAMP('2026-03-30 12:10:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-03-30 12:42:00', 'YYYY-MM-DD HH24:MI:SS'), 'Delivered', 370.00);
+
+INSERT INTO OrderItem VALUES (1001, 201, 1, 250.00);
+INSERT INTO OrderItem VALUES (1001, 202, 1, 360.00);
+INSERT INTO OrderItem VALUES (1001, 203, 1, 60.00);
+INSERT INTO OrderItem VALUES (1002, 205, 1, 380.00);
+INSERT INTO OrderItem VALUES (1002, 207, 1, 220.00);
+INSERT INTO OrderItem VALUES (1003, 202, 1, 360.00);
+INSERT INTO OrderItem VALUES (1004, 210, 1, 270.00);
+INSERT INTO OrderItem VALUES (1004, 211, 1, 160.00);
+INSERT INTO OrderItem VALUES (1005, 206, 1, 490.00);
+INSERT INTO OrderItem VALUES (1006, 208, 1, 310.00);
+INSERT INTO OrderItem VALUES (1006, 209, 1, 180.00);
+INSERT INTO OrderItem VALUES (1007, 202, 1, 360.00);
+INSERT INTO OrderItem VALUES (1007, 203, 1, 60.00);
+INSERT INTO OrderItem VALUES (1008, 212, 1, 420.00);
+INSERT INTO OrderItem VALUES (1008, 213, 1, 130.00);
+INSERT INTO OrderItem VALUES (1009, 212, 2, 420.00);
+INSERT INTO OrderItem VALUES (1010, 212, 1, 420.00);
+INSERT INTO OrderItem VALUES (1011, 212, 1, 420.00);
+INSERT INTO OrderItem VALUES (1011, 214, 1, 150.00);
+INSERT INTO OrderItem VALUES (1011, 213, 1, 130.00);
+INSERT INTO OrderItem VALUES (1012, 210, 1, 270.00);
+INSERT INTO OrderItem VALUES (1013, 208, 1, 310.00);
+INSERT INTO OrderItem VALUES (1014, 206, 1, 490.00);
+INSERT INTO OrderItem VALUES (1014, 207, 1, 220.00);
+INSERT INTO OrderItem VALUES (1015, 201, 1, 250.00);
+INSERT INTO OrderItem VALUES (1015, 202, 1, 360.00);
+INSERT INTO OrderItem VALUES (1016, 210, 1, 270.00);
+INSERT INTO OrderItem VALUES (1016, 211, 1, 160.00);
+INSERT INTO OrderItem VALUES (1017, 212, 1, 420.00);
+INSERT INTO OrderItem VALUES (1017, 214, 1, 150.00);
+INSERT INTO OrderItem VALUES (1018, 202, 1, 360.00);
+INSERT INTO OrderItem VALUES (1018, 203, 1, 60.00);
+INSERT INTO OrderItem VALUES (1019, 205, 1, 380.00);
+INSERT INTO OrderItem VALUES (1020, 210, 1, 270.00);
+INSERT INTO OrderItem VALUES (1021, 212, 1, 420.00);
+INSERT INTO OrderItem VALUES (1022, 201, 1, 250.00);
+INSERT INTO OrderItem VALUES (1022, 204, 1, 110.00);
+
+INSERT INTO Payment VALUES (5001, 1001, 'UPI', 670.00, 'Completed', TO_TIMESTAMP('2026-03-01 12:31:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5002, 1002, 'Card', 600.00, 'Completed', TO_TIMESTAMP('2026-03-05 19:16:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5003, 1003, 'UPI', 360.00, 'Completed', TO_TIMESTAMP('2026-03-12 13:01:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5004, 1004, 'Wallet', 430.00, 'Completed', TO_TIMESTAMP('2026-03-20 20:01:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5005, 1005, 'Card', 490.00, 'Completed', TO_TIMESTAMP('2026-03-02 20:11:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5006, 1006, 'Cash', 490.00, 'Completed', TO_TIMESTAMP('2026-03-07 14:06:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5007, 1007, 'UPI', 420.00, 'Completed', TO_TIMESTAMP('2026-03-03 12:01:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5008, 1008, 'Card', 550.00, 'Completed', TO_TIMESTAMP('2026-03-04 18:46:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5009, 1009, 'UPI', 840.00, 'Completed', TO_TIMESTAMP('2026-03-09 19:01:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5010, 1010, 'Card', 420.00, 'Completed', TO_TIMESTAMP('2026-03-15 20:31:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5011, 1011, 'UPI', 700.00, 'Completed', TO_TIMESTAMP('2026-03-24 13:11:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5012, 1012, 'Cash', 270.00, 'Completed', TO_TIMESTAMP('2026-03-06 21:39:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5013, 1013, 'Wallet', 310.00, 'Completed', TO_TIMESTAMP('2026-03-08 14:01:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5014, 1014, 'Card', 710.00, 'Completed', TO_TIMESTAMP('2026-03-10 19:31:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5015, 1015, 'UPI', 610.00, 'Completed', TO_TIMESTAMP('2026-03-11 12:46:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5016, 1016, 'UPI', 430.00, 'Completed', TO_TIMESTAMP('2026-03-13 13:16:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5017, 1017, 'Card', 570.00, 'Completed', TO_TIMESTAMP('2026-03-14 20:01:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5018, 1018, 'UPI', 420.00, 'Completed', TO_TIMESTAMP('2026-03-18 20:11:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5019, 1019, 'Wallet', 380.00, 'Completed', TO_TIMESTAMP('2026-03-22 19:41:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5020, 1020, 'Cash', 270.00, 'Completed', TO_TIMESTAMP('2026-03-26 14:16:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5021, 1021, 'UPI', 420.00, 'Completed', TO_TIMESTAMP('2026-03-28 20:16:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO Payment VALUES (5022, 1022, 'Card', 370.00, 'Completed', TO_TIMESTAMP('2026-03-30 12:11:00', 'YYYY-MM-DD HH24:MI:SS'));
+
+COMMIT;
+
+SELECT 
+    m.name AS item_name,
+    r.name AS restaurant_name,
+    SUM(oi.quantity) AS total_sold
+FROM OrderItem oi
+JOIN MenuItem m ON oi.item_id = m.item_id
+JOIN Restaurant r ON m.restaurant_id = r.restaurant_id
+JOIN Orders o ON oi.order_id = o.order_id
+WHERE o.order_status = 'Delivered'
+GROUP BY m.item_id, m.name, r.name
+ORDER BY total_sold DESC
+FETCH FIRST 5 ROWS ONLY;
+
+SELECT 
+    r.name AS restaurant_name,
+    r.cuisine_type,
+    COALESCE(SUM(o.total_amount), 0.00) AS total_revenue
+FROM Restaurant r
+LEFT JOIN Orders o ON r.restaurant_id = o.restaurant_id AND o.order_status = 'Delivered'
+GROUP BY r.restaurant_id, r.name, r.cuisine_type
+ORDER BY total_revenue DESC;
+
+SELECT 
+    da.agent_id,
+    da.name AS agent_name,
+    da.phone,
+    COUNT(o.order_id) AS total_deliveries,
+    ROUND(AVG(CAST(o.delivered_datetime AS DATE) - CAST(o.order_datetime AS DATE)) * 24 * 60, 2) AS avg_delivery_minutes
+FROM DeliveryAgent da
+JOIN Orders o ON da.agent_id = o.agent_id
+WHERE o.order_status = 'Delivered' 
+  AND o.delivered_datetime IS NOT NULL
+GROUP BY da.agent_id, da.name, da.phone
+ORDER BY avg_delivery_minutes ASC;
+
+SELECT 
+    c.customer_id,
+    c.name AS customer_name,
+    c.email,
+    TO_CHAR(o.order_datetime, 'YYYY-MM') AS order_month,
+    COUNT(o.order_id) AS total_orders
+FROM Customer c
+JOIN Orders o ON c.customer_id = o.customer_id
+WHERE o.order_status <> 'Cancelled'
+GROUP BY c.customer_id, c.name, c.email, TO_CHAR(o.order_datetime, 'YYYY-MM')
+HAVING COUNT(o.order_id) > 3
+ORDER BY total_orders DESC;
+
+SELECT 
+    restaurant_id,
+    name AS restaurant_name,
+    cuisine_type,
+    avg_rating,
+    address
+FROM Restaurant
+WHERE avg_rating > 4.0
+ORDER BY avg_rating DESC;
+
+
+
+DROP TABLE  Payment CASCADE CONSTRAINTS;
+DROP TABLE  OrderItem CASCADE CONSTRAINTS;
+DROP TABLE  Orders CASCADE CONSTRAINTS;
+DROP TABLE  MenuItem CASCADE CONSTRAINTS;
+DROP TABLE  DeliveryAgent CASCADE CONSTRAINTS;
+DROP TABLE  Restaurant CASCADE CONSTRAINTS;
+DROP TABLE  CustomerAddress CASCADE CONSTRAINTS;
+DROP TABLE  Customer CASCADE CONSTRAINTS;
